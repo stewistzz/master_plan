@@ -19,3 +19,7 @@ samples, guidance on mobile development, and a full API reference.
 ![Praktikum 1](images/plan%201.jpg)
 ![Praktikum 1](images/plan%202.jpg)
 ![Praktikum 2](images/plan%203.jpg)
+![Praktikum 3](images/plan%204.jpg)
+![Praktikum 3](images/plan%205.jpg)
+![Praktikum 3](images/plan%206.jpg)
+![Praktikum 3](images/plan%207.jpg)

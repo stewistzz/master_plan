@@ -1,22 +1,18 @@
 import 'package:master_plan/provider/plan_provider.dart';
-
 import '../models/data_layer.dart';
 import 'package:flutter/material.dart';
 
 class PlanScreen extends StatefulWidget {
-  const PlanScreen({super.key});
+  final String planName; // Simpan hanya nama plan, bukan objek plan
+  const PlanScreen({super.key, required this.planName});
 
   @override
   State createState() => _PlanScreenState();
 }
 
 class _PlanScreenState extends State<PlanScreen> {
-  // Plan plan = const Plan();
-
-  // menambahkan variabel scroll controller
   late ScrollController scrollController;
 
-  // menambahkan scroll listener pada inisialisasi state
   @override
   void initState() {
     super.initState();
@@ -28,15 +24,23 @@ class _PlanScreenState extends State<PlanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final plansNotifier = PlanProvider.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Master Plan')),
-      body: ValueListenableBuilder<Plan>(
-        valueListenable: PlanProvider.of(context),
-        builder: (context, plan, child) {
+      appBar: AppBar(title: Text(widget.planName)),
+      body: ValueListenableBuilder<List<Plan>>(
+        valueListenable: plansNotifier,
+        builder: (context, plans, child) {
+          // Ambil plan terbaru dari provider, bukan dari widget.plan
+          final currentPlan = plans.firstWhere(
+            (p) => p.name == widget.planName,
+            orElse: () => Plan(name: widget.planName, tasks: []),
+          );
+
           return Column(
             children: [
-              Expanded(child: _buildList(plan)),
-              SafeArea(child: Text(plan.completenessMessage)),
+              Expanded(child: _buildList(currentPlan, plansNotifier)),
+              SafeArea(child: Text(currentPlan.completenessMessage)),
             ],
           );
         },
@@ -45,64 +49,76 @@ class _PlanScreenState extends State<PlanScreen> {
     );
   }
 
-  // membuat tombol untuk menambah tugas
+  // _buildAddTaskButton tidak pakai plan lokal
   Widget _buildAddTaskButton(BuildContext context) {
-    ValueNotifier<Plan> planNotifier = PlanProvider.of(context);
+    final planNotifier = PlanProvider.of(context);
     return FloatingActionButton(
       child: const Icon(Icons.add),
       onPressed: () {
-        Plan currentPlan = planNotifier.value;
-        planNotifier.value = Plan(
-          name: currentPlan.name,
-          tasks: List<Task>.from(currentPlan.tasks)..add(const Task()),
-        );
+        final plans = List<Plan>.from(planNotifier.value);
+        final index = plans.indexWhere((p) => p.name == widget.planName);
+        if (index == -1) return;
+
+        final updatedTasks = List<Task>.from(plans[index].tasks)
+          ..add(const Task());
+        plans[index] = Plan(name: plans[index].name, tasks: updatedTasks);
+
+        planNotifier.value = plans;
       },
     );
   }
 
-  // membuat daftar tugas dengan ListView.builder
-  Widget _buildList(Plan plan) {
+  // Kirim plan dan notifier agar sinkron
+  Widget _buildList(Plan plan, ValueNotifier<List<Plan>> planNotifier) {
     return ListView.builder(
       controller: scrollController,
       itemCount: plan.tasks.length,
       itemBuilder: (context, index) =>
-          _buildTaskTile(plan.tasks[index], index, context),
+          _buildTaskTile(plan, plan.tasks[index], index, planNotifier),
     );
   }
 
-  // membuat widget _buildTaskTile untuk menampilkan setiap tugas
-  Widget _buildTaskTile(Task task, int index, BuildContext context) {
-    ValueNotifier<Plan> planNotifier = PlanProvider.of(context);
+  Widget _buildTaskTile(
+    Plan plan,
+    Task task,
+    int index,
+    ValueNotifier<List<Plan>> planNotifier,
+  ) {
     return ListTile(
       leading: Checkbox(
         value: task.complete,
         onChanged: (selected) {
-          Plan currentPlan = planNotifier.value;
-          planNotifier.value = Plan(
-            name: currentPlan.name,
-            tasks: List<Task>.from(currentPlan.tasks)
-              ..[index] = Task(
-                description: task.description,
-                complete: selected ?? false,
-              ),
-          );
+          final plans = List<Plan>.from(planNotifier.value);
+          final planIndex = plans.indexWhere((p) => p.name == plan.name);
+          if (planIndex == -1) return;
+
+          final updatedTasks = List<Task>.from(plan.tasks)
+            ..[index] = Task(
+              description: task.description,
+              complete: selected ?? false,
+            );
+
+          plans[planIndex] = Plan(name: plan.name, tasks: updatedTasks);
+          planNotifier.value = plans;
         },
       ),
       title: TextFormField(
         initialValue: task.description,
         onChanged: (text) {
-          Plan currentPlan = planNotifier.value;
-          planNotifier.value = Plan(
-            name: currentPlan.name,
-            tasks: List<Task>.from(currentPlan.tasks)
-              ..[index] = Task(description: text, complete: task.complete),
-          );
+          final plans = List<Plan>.from(planNotifier.value);
+          final planIndex = plans.indexWhere((p) => p.name == plan.name);
+          if (planIndex == -1) return;
+
+          final updatedTasks = List<Task>.from(plan.tasks)
+            ..[index] = Task(description: text, complete: task.complete);
+
+          plans[planIndex] = Plan(name: plan.name, tasks: updatedTasks);
+          planNotifier.value = plans;
         },
       ),
     );
   }
 
-  // method dispose untuk membersihkan scroll controller
   @override
   void dispose() {
     scrollController.dispose();
