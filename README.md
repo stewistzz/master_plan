@@ -18,3 +18,4 @@ samples, guidance on mobile development, and a full API reference.
 ===== Hasil Running Praktikum =====
 ![Praktikum 1](images/plan%201.jpg)
 ![Praktikum 1](images/plan%202.jpg)
+![Praktikum 2](images/plan%203.jpg)
